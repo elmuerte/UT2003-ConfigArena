@@ -1,21 +1,23 @@
 ///////////////////////////////////////////////////////////////////////////////
 // filename:    ConfigArena.uc
-// version:     100
+// version:     101
 // author:      Michiel 'El Muerte' Hendriks <elmuerte@drunksnipers.com>
 // purpose:     A configurable Arena mutator
 ///////////////////////////////////////////////////////////////////////////////
 
 class ConfigArena extends MutArena config;
 
+var config string WeaponList;
+
 function string getWeaponList()
 {
   local string result;
-  local string WeaponClass, WeaponDesc;
+  local string WeaponClass;
   local class<Weapon> Weapon;
   local int i;
 
   i = 0;
-  GetNextIntDesc("Engine.Weapon",i,WeaponClass,WeaponDesc);
+  WeaponClass = GetNextInt("Engine.Weapon",i);
   while (WeaponClass != "")
 	{
     weapon = class<weapon>(DynamicLoadObject(WeaponClass,Class'Class',true));
@@ -23,19 +25,30 @@ function string getWeaponList()
     {
       result = result$WeaponClass$";"$weapon.default.ItemName$";";
     }
-    GetNextIntDesc("Engine.Weapon",++i,WeaponClass,WeaponDesc);
+    WeaponClass = GetNextInt("Engine.Weapon",++i);
   }
   return result;
 }
 
-function MutatorFillPlayInfo(PlayInfo PlayInfo)
+event PreBeginPlay()
 {
-  FillPlayInfo(PlayInfo);
-	PlayInfo.AddSetting("Game", "ArenaWeaponClassName", "Weapon Arena", 0, 120, "Select", getWeaponList());
-  if (NextMutator != None) NextMutator.MutatorFillPlayInfo(PlayInfo);
+  Default.WeaponList = getWeaponList();
+  StaticSaveConfig();
+}
+
+static function string StaticGetWeaponList()
+{
+  if (Default.WeaponList != "") return Default.WeaponList;
+  else return Default.ArenaWeaponClassName$";not initialised;";
+}
+
+static function FillPlayInfo(PlayInfo PlayInfo)
+{
+  super.FillPlayInfo(PlayInfo);
+  PlayInfo.AddSetting("Game", "ArenaWeaponClassName", "Weapon Arena", 0, 120, "Select", StaticGetWeaponList());
 }
 
 defaultproperties
 {
-     FriendlyName="ConfigArena"
+  FriendlyName="ConfigArena"
 }
